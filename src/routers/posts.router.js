@@ -1,4 +1,25 @@
 const express = require("express");
+const z = require("zod");
+
+const postSchema = z.object({
+  title: z.string({
+    required_error: "Title is required",
+  }),
+  body: z.string({
+    required_error: "Body is required",
+  }),
+  userId: z.number({
+    required_error: "UserId is required",
+  }),
+});
+
+const validate = (schema) => async (req, res, next) => {
+  const { error } = schema.safeParse(req.body);
+  if (error) {
+    return res.status(400).json(JSON.parse(error.message));
+  }
+  next();
+};
 
 const posts = [
   {
@@ -31,17 +52,8 @@ router.get("/:id", (req, res) => {
   res.json(post);
 });
 
-router.post("", (req, res) => {
+router.post("/", validate(postSchema), (req, res) => {
   const post = req.body;
-  if (!post.title) {
-    res.status(400).json({ message: "Title is required" });
-  }
-  if (!post.body) {
-    res.status(400).json({ message: "Body is required" });
-  }
-  if (!post.userId) {
-    res.status(400).json({ message: "UserId is required" });
-  }
   post.id = Math.max(...posts.map((post) => post.id)) + 1;
   posts.push(post);
   res.json(post);
