@@ -1,6 +1,6 @@
 const express = require("express");
 const z = require("zod");
-const client = require("../pgClient");
+const prisma = require("../prisma");
 
 const postSchema = z.object({
   title: z.string({
@@ -24,9 +24,9 @@ const validate = (schema) => async (req, res, next) => {
 
 const router = express.Router();
 
-router.get("", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { rows: posts } = await client.query("SELECT * FROM public.posts");
+    const posts = await prisma.posts.findMany();
     res.json(posts);
   } catch (error) {
     console.log(error);
@@ -36,24 +36,28 @@ router.get("", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
-  const { rows: posts } = await client.query(
-    "SELECT * FROM public.posts WHERE id = $1",
-    [id]
-  );
-  if (posts.length === 0) {
+  const post = await prisma.posts.findUnique({
+    where: {
+      id: Number(id),
+    },
+  });
+  if (!post) {
     res.status(404).json({ message: "Post not found" });
   }
-  res.json(posts[0]);
+  res.json(post);
 });
 
 router.post("/", validate(postSchema), async (req, res) => {
   const { title, body, user_id } = req.body;
   try {
-    const { rows: addedPosts } = await client.query(
-      "INSERT INTO public.posts (title, body, user_id) VALUES ($1, $2, $3) RETURNING *",
-      [title, body, user_id]
-    );
-    res.json(addedPosts);
+    const addedPost = await prisma.posts.create({
+      data: {
+        title,
+        body,
+        user_id,
+      },
+    });
+    res.json(addedPost);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -64,27 +68,17 @@ router.put("/:id", async (req, res) => {
   const { id } = req.params;
   const { title, body, user_id } = req.body;
   try {
-    const { rows: oldPosts } = await client.query(
-      "SELECT * FROM public.posts WHERE id = $1",
-      [id]
-    );
-    if (oldPosts.length === 0) {
-      res.status(404).json({ message: "Post not found" });
-    }
-    if (title) {
-      oldPosts[0].title = title;
-    }
-    if (body) {
-      oldPosts[0].body = body;
-    }
-    if (user_id) {
-      oldPosts[0].user_id = user_id;
-    }
-    const { rows: updatedPosts } = await client.query(
-      "UPDATE public.posts SET title = $1, body = $2, user_id = $3 WHERE id = $4 RETURNING *",
-      [oldPosts[0].title, oldPosts[0].body, oldPosts[0].user_id, id]
-    );
-    res.json(updatedPosts);
+    const updatedPost = await prisma.posts.update({
+      where: {
+        id: Number(id),
+      },
+      data: {
+        title,
+        body,
+        user_id,
+      },
+    });
+    res.json(updatedPost);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -93,11 +87,12 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
-  const { rows: deletedPosts } = await client.query(
-    "DELETE FROM public.posts WHERE id = $1 returning *",
-    [id]
-  );
-  res.json(deletedPosts);
+  const deletedPost = await prisma.posts.delete({
+    where: {
+      id: Number(id),
+    },
+  });
+  res.json(deletedPost);
 });
 
 module.exports = router;
