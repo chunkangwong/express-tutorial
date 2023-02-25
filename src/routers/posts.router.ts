@@ -1,56 +1,7 @@
-import express, { Request, Response, NextFunction } from "express";
-import z from "zod";
-import prisma from "../prisma";
 import { Prisma } from "@prisma/client";
-import { ZodError } from "zod/lib";
-
-const postSchema = z.object({
-  title: z.string({
-    required_error: "title is required",
-  }),
-  body: z.string({
-    required_error: "body is required",
-  }),
-  user_id: z.number({
-    required_error: "user_id is required",
-  }),
-});
-
-const idSchema = z.object({
-  id: z.number({
-    required_error: "id is required",
-  }),
-});
-
-const validateBody =
-  (schema: typeof postSchema) =>
-  async (req: Request, res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
-    if (result.success === false) {
-      const zError = JSON.parse(result.error.message);
-      console.log(zError);
-      return res.status(400).json({
-        message: zError.map((err: ZodError) => err.message).join("; "),
-      });
-    }
-    next();
-  };
-
-const validateParams =
-  (schema: typeof idSchema) =>
-  async (req: Request, res: Response, next: NextFunction) => {
-    const result = schema.safeParse({
-      id: Number(req.params.id),
-    });
-    if (result.success === false) {
-      const zError = JSON.parse(result.error.message);
-      console.log(zError);
-      return res.status(400).json({
-        message: zError.map((err: ZodError) => err.message).join("; "),
-      });
-    }
-    next();
-  };
+import express from "express";
+import prisma from "../prisma";
+import { validateBody, validateParams } from "./posts.middleware";
 
 const router = express.Router();
 
@@ -64,7 +15,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", validateParams(idSchema), async (req, res) => {
+router.get("/:id", validateParams, async (req, res) => {
   const { id } = req.params;
   try {
     const post = await prisma.posts.findUnique({
@@ -81,7 +32,7 @@ router.get("/:id", validateParams(idSchema), async (req, res) => {
   }
 });
 
-router.post("/", validateBody(postSchema), async (req, res) => {
+router.post("/", validateBody, async (req, res) => {
   const { title, body, user_id } = req.body;
   try {
     const addedPost = await prisma.posts.create({
@@ -98,7 +49,7 @@ router.post("/", validateBody(postSchema), async (req, res) => {
   }
 });
 
-router.put("/:id", validateParams(idSchema), async (req, res) => {
+router.put("/:id", validateParams, async (req, res) => {
   const { id } = req.params;
   const { title, body, user_id } = req.body;
   try {
@@ -124,7 +75,7 @@ router.put("/:id", validateParams(idSchema), async (req, res) => {
   }
 });
 
-router.delete("/:id", validateParams(idSchema), async (req, res) => {
+router.delete("/:id", validateParams, async (req, res) => {
   const { id } = req.params;
   try {
     const deletedPost = await prisma.posts.delete({
