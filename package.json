@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "copy": "nodemon --watch ./src --ext ts --exec \"xcopy .\\ecosystem.config.js .\\dist /Y\"",
     "build": "ncc build ./src/index.ts -w -o dist/",
     "start": "nodemon dist/index.js",
-    "dev": "concurrently -k \"npm run build\" \"npm run start\""
+    "dev": "concurrently -k \"npm run copy\" \"npm run build\" \"npm run start\""
   },
   "keywords": [],
   "author": "",
