@@ -1,8 +1,8 @@
-const express = require("express");
-require("dotenv").config();
-const postsRouter = require("./routers/posts.router");
-
-const prisma = require("./prisma");
+import dotenv from "dotenv";
+import express from "express";
+import prisma from "./prisma";
+import postsRouter from "./routers/posts.router";
+dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 

@@ -1,7 +1,8 @@
-const express = require("express");
-const z = require("zod");
-const prisma = require("../prisma");
-const Prisma = require("@prisma/client");
+import express, { Request, Response, NextFunction } from "express";
+import z from "zod";
+import prisma from "../prisma";
+import { Prisma } from "@prisma/client";
+import { ZodError } from "zod/lib";
 
 const postSchema = z.object({
   title: z.string({
@@ -21,30 +22,35 @@ const idSchema = z.object({
   }),
 });
 
-const validateBody = (schema) => async (req, res, next) => {
-  const { error } = schema.safeParse(req.body);
-  if (error) {
-    const zError = JSON.parse(error.message);
-    console.log(zError);
-    return res
-      .status(400)
-      .json({ message: zError.map((err) => err.message).join("; ") });
-  }
-  next();
-};
+const validateBody =
+  (schema: typeof postSchema) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.body);
+    if (result.success === false) {
+      const zError = JSON.parse(result.error.message);
+      console.log(zError);
+      return res.status(400).json({
+        message: zError.map((err: ZodError) => err.message).join("; "),
+      });
+    }
+    next();
+  };
 
-const validateParams = (schema) => async (req, res, next) => {
-  req.params.id = Number(req.params.id);
-  const { error } = schema.safeParse(req.params);
-  if (error) {
-    const zError = JSON.parse(error.message);
-    console.log(zError);
-    return res
-      .status(400)
-      .json({ message: zError.map((err) => err.message).join("; ") });
-  }
-  next();
-};
+const validateParams =
+  (schema: typeof idSchema) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse({
+      id: Number(req.params.id),
+    });
+    if (result.success === false) {
+      const zError = JSON.parse(result.error.message);
+      console.log(zError);
+      return res.status(400).json({
+        message: zError.map((err: ZodError) => err.message).join("; "),
+      });
+    }
+    next();
+  };
 
 const router = express.Router();
 
@@ -138,4 +144,4 @@ router.delete("/:id", validateParams(idSchema), async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
