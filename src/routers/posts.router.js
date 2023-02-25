@@ -15,12 +15,33 @@ const postSchema = z.object({
   }),
 });
 
-const validate = (schema) => async (req, res, next) => {
+const idSchema = z.object({
+  id: z.number({
+    required_error: "id is required",
+  }),
+});
+
+const validateBody = (schema) => async (req, res, next) => {
   const { error } = schema.safeParse(req.body);
   if (error) {
     const zError = JSON.parse(error.message);
     console.log(zError);
-    return res.status(400).json(zError.map((err) => err.message).join("; "));
+    return res
+      .status(400)
+      .json({ message: zError.map((err) => err.message).join("; ") });
+  }
+  next();
+};
+
+const validateParams = (schema) => async (req, res, next) => {
+  req.params.id = Number(req.params.id);
+  const { error } = schema.safeParse(req.params);
+  if (error) {
+    const zError = JSON.parse(error.message);
+    console.log(zError);
+    return res
+      .status(400)
+      .json({ message: zError.map((err) => err.message).join("; ") });
   }
   next();
 };
@@ -37,7 +58,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", validateParams(idSchema), async (req, res) => {
   const { id } = req.params;
   try {
     const post = await prisma.posts.findUnique({
@@ -50,12 +71,11 @@ router.get("/:id", async (req, res) => {
     }
     return res.json(post);
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
-router.post("/", validate(postSchema), async (req, res) => {
+router.post("/", validateBody(postSchema), async (req, res) => {
   const { title, body, user_id } = req.body;
   try {
     const addedPost = await prisma.posts.create({
@@ -72,7 +92,7 @@ router.post("/", validate(postSchema), async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", validateParams(idSchema), async (req, res) => {
   const { id } = req.params;
   const { title, body, user_id } = req.body;
   try {
@@ -98,7 +118,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", validateParams(idSchema), async (req, res) => {
   const { id } = req.params;
   try {
     const deletedPost = await prisma.posts.delete({
