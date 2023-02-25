@@ -12,7 +12,7 @@ const main = async () => {
   app.use(express.urlencoded({ extended: true }));
 
   app.get("/", (req, res) => {
-    res.send("Hello World!");
+    res.send("Hello hell!");
   });
 
   app.use("/posts", postsRouter);
