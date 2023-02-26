@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import express from "express";
 import prisma from "./prisma";
+import cors from "cors";
 import postsRouter from "./routers/posts.router";
 dotenv.config();
 
@@ -10,6 +11,7 @@ const main = async () => {
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(cors());
 
   app.get("/", (req, res) => {
     res.send("Hello hell!");
